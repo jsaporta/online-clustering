@@ -8,26 +8,39 @@ import confluent_kafka
 import numpy as np
 import sklearn.mixture
 
+n_components = 3
+
 c = confluent_kafka.Consumer({"bootstrap.servers": "localhost:9092",
                               "group.id": "mygroup"})
 c.subscribe(["datastream"])
 
-# data_arr = np.array([]).reshape(-1, 2)
-# model = sklearn.mixture.BayesianGaussianMixture(n_components=10,
-#                                                 max_iter=5000,
-#                                                 warm_start=True,
-#                                                 covariance_type="spherical")
+all_data = np.array([]).reshape(-1, 2)
+new_data = np.array([]).reshape(-1, 2)
+cluster_preds = []
+model = sklearn.mixture.BayesianGaussianMixture(n_components=n_components,
+                                                max_iter=5000,
+                                                warm_start=True,
+                                                covariance_type="spherical")
 
 def read_from_kafka():
+    global all_data
+    global cluster_preds
+    global new_data
     data = [m.value() for m in c.consume(100, 1)
             if (m is not None) and not m.error()]
-    data_arr = np.array([np.frombuffer(item) for item in data])
+    data_arr = np.array([np.frombuffer(item) for item in data]).reshape(-1, 2)
+    new_data = np.vstack((new_data, data_arr))
 
-    if len(data_arr) == 0:
+    if len(new_data) > n_components:
+        model.fit(new_data)
+        all_data = np.vstack((all_data, new_data))
+        new_data = np.array([]).reshape(-1, 2)
+        cluster_preds = list(model.predict(all_data).flatten())
+
+    if len(all_data) == 0:
         return [], [], []
 
-
-    return list(data_arr[:, 0]), list(data_arr[:, 1]), [random.choice(["red", "blue", "green"]) for _ in range(len(data_arr))]
+    return list(all_data[:, 0]), list(all_data[:, 1]), [["red", "blue", "green"][cluster] for cluster in cluster_preds]
 
 
 def make_document(doc):
@@ -54,38 +67,3 @@ apps = {"/": bokeh.application.Application(FunctionHandler(make_document))}
 if __name__ == "__main__":
     server = bokeh.server.server.Server(apps, port=5006)
     server.run_until_shutdown()
-
-
-
-
-# def kafka_to_buffer():
-#     data = [m.value() for m in c.consume(100, 1)
-#             if (m is not None) and not m.error()]
-#     return np.array([np.frombuffer(item) for item in data])
-
-# def read_from_buffer():
-#     global data_arr
-#     data_arr.extend(kafka_to_buffer())
-#     if len(data_arr) >= 10:
-#         data_copy =  data_arr.copy()
-#         data_arr = []
-#         return data_copy
-#     else:
-#         return []
-
-# @app.route("/")
-# def send_model_params():
-#     X = read_from_buffer()
-#     if not len(X) == 0:
-#         model.fit(X)
-#     else:
-#         return flask.jsonify({"Data": [],
-#                               "Clusters": []})
-
-#     estimated_clusters = [float(val) for val in model.predict(X)]
-
-#     data_list = []
-#     for arr in X:
-#         data_list.append(list(arr))
-#     return flask.jsonify({"Data": data_list,
-#                           "Clusters": estimated_clusters})

@@ -14,4 +14,4 @@ while True:
     obs = scipy.stats.multivariate_normal(means[component]).rvs()
     p.produce("datastream", obs.tobytes())
     p.flush()
-    time.sleep(5)
+    time.sleep(3)
