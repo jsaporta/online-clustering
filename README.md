@@ -1,5 +1,4 @@
 # Online Clustering with DPGMMs
-This repo is still a **work in progress** and **does not yet** work as advertised! This README is also unfinished, and my explanations of various things are frequently either lacking or nonexistent.
 
 ## Contents
 - [What is this?](#what-is-this?)
@@ -12,7 +11,7 @@ This repo is still a **work in progress** and **does not yet** work as advertise
   - [Docker](#docker)
   - [Kafka](#kafka)
 - [Statistics background](#statistics-background)
-  - [Mixture models and clustering](#mixture-models-and-clustering)
+  - [Finite mixture models and clustering](#finite-mixture-models-and-clustering)
   - [Dirichlet process priors](#dirichlet-process-priors)
 - [Acknowledgements](#acknowledgements)
 
@@ -62,9 +61,25 @@ Containers are built from **images** which are specified in **Dockerfiles**. For
 [Apache Kafka](https://kafka.apache.org/) is, according to its website, a "distributed streaming platform". What that basically means is that Kafka is designed to help programs that produce a continuous stream of data connect with those that consume those streams. This can be done with traditional databases, but for large enough projects, you may encounter problems both organization- and performance-wise.
 
 ## Statistics background
-### Mixture models and clustering
+### Finite mixture models and clustering
+In a **finite mixture model**, we view each data point as being a member of one of K **components**, where K is typically an integer chosen as a hyperparameter before fitting (but see below). In a Gaussian mixture like what we use here, data points are modeled as being normal/Gaussian distributed within each component. Therefore, the model has 3 sets of parameters that need to be estimated/learned:
+
+1. The K **component weights**, which must sum to 1. In the generative process, you might imagine the i-th weight as the probability that a new data point comes from component i.
+2. The K **mean vectors** of the normal distributions, one for each component.
+3. The K **covariance matrices** of the normal distributions. Again, one for each component.
+
+Finite mixture models are frequently used for clustering, because the clustering task can be viewed as determining which of the K components each data point came from. Indeed, the popular K-means algorithm taught to every student in Machine Learning 101 can be viewed as fitting a finite mixture model under the hood.
 
 ### Dirichlet process priors
+(Note that my understanding of this topic is still a bit raw. Any mistakes here are of course unintentional, and any suggested fixes are very welcome.)
+
+Choosing the value of K is difficult, and one way to get around having to make that choice is by using a **Dirichlet process prior distribution** on the components.
+
+Essentially, we can imagine the standard finite mixture model described above as assigning one weight/probability value to each of the K normal distributions that comprise the model. That is, we have a *discrete probability distribution over the normal components of the model*.
+
+In a Bayesian setup, we would typically put a prior distribution on this vector of probability parameters and use Bayes' rule to get a posterior distribution. In particular, a Dirichlet distribution is the conjugate prior and makes this Bayesian update relatively easy. Given a value for K, a Dirichlet distribution can be viewed as a *random probability distribution over K values*, in that a draw from the Dirichlet gives a vector of K non-negative values that sum to 1.
+
+Now with a standard Dirichlet prior, we haven't gotten out of having to choose a K. This is where we extend the Dirichlet distribution to a Dirichlet process. A draw from a Dirichlet process can be viewed as a *random discrete probability distribution*. With a Dirichlet process prior, we implicitly place a prior over the number of components K in the model. When we update the prior to a posterior distribution (which uses similar math to the standard Dirichlet distribution update), our beliefs about the number of components that the data come from are updated as well.
 
 ## Acknowledgements
 - The Bokeh visualization was created with help from [Matthew Rocklin's blog](http://matthewrocklin.com/blog/work/2017/06/28/simple-bokeh-server). I essentially modified one of his examples to fit my project.
@@ -72,3 +87,4 @@ Containers are built from **images** which are specified in **Dockerfiles**. For
 - [This blogpost from Krzysztof Żuraw](https://krzysztofzuraw.com/blog/2016/makefiles-in-python-projects.html) influenced me to start using Make in many of my projects to organize common tasks.
 - When using Make, I ran into a problem for which phony targets were the answer. [This Stack Overflow question](https://stackoverflow.com/questions/2145590/what-is-the-purpose-of-phony-in-a-makefile) helped me understand them.
 - Thanks to Spotify for creating an easy-to-use [Docker image for Kafka](https://hub.docker.com/r/spotify/kafka/). This saved me a lot of work!
+- Among other resources, Gershman and Blei's [tutorial on Bayesian nonparametrics](https://arxiv.org/abs/1106.2697) was very helpful while trying to wrap my head around the fundamental concepts.

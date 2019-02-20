@@ -8,7 +8,7 @@ import confluent_kafka
 import numpy as np
 import sklearn.mixture
 
-n_components = 3
+n_components = 10
 
 c = confluent_kafka.Consumer({"bootstrap.servers": "localhost:9092",
                               "group.id": "mygroup"})
