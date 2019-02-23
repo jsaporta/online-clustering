@@ -6,12 +6,15 @@
   - [Components](#components)
 - [Requirements](#requirements)
 - [How to use](#how-to-use)
+  - [Startup](#startup)
+  - [Cleanup](#cleanup)
 - [Software engineering backgroud](#software-engineering-background)
   - [Make](make)
   - [Docker](#docker)
   - [Kafka](#kafka)
 - [Statistics background](#statistics-background)
   - [Finite mixture models and clustering](#finite-mixture-models-and-clustering)
+  - [Dirichlet priors](#dirichlet-priors)
   - [Dirichlet process priors](#dirichlet-process-priors)
 - [Acknowledgements](#acknowledgements)
 
@@ -35,6 +38,7 @@ This project currently assumes...
 If you can help remove some of these requirements, please contribute! :D
 
 ## How to use
+### Startup
 With the requirements in place, you can...
 1. Clone or download this repository.
 2. Navigate to the project's root directory.
@@ -73,18 +77,21 @@ In a **finite mixture model**, we view each data point as being a member of one 
 2. The K **mean vectors** of the normal distributions, one for each component.
 3. The K **covariance matrices** of the normal distributions. Again, one for each component.
 
-Finite mixture models are frequently used for clustering, because the clustering task can be viewed as determining which of the K components each data point came from. Indeed, the popular K-means algorithm taught to every student in Machine Learning 101 can be viewed as fitting a finite mixture model under the hood.
+Finite mixture models are frequently used for clustering, because the clustering task can be viewed as determining which of the K components each data point came from. Indeed, the popular K-means algorithm taught in "Machine Learning 101" can be viewed as fitting a finite mixture model under the hood.
+
+### Dirichlet priors
+In a Bayesian setup, inference is performed by putting a **prior distribution** on the parameter vector in the model representing our "beliefs" about the parameter values. Bayes' rule is then used to get a **posterior distribution**, representing our beliefs about the parameter values after having seen the data.
+
+Disregarding the mean and covariance parameters for now, the [**Dirichlet distribution**](https://en.wikipedia.org/wiki/Dirichlet_distribution) is the most commonly used distribution for the K-vector of component weights. They must be positive and sum to 1, and this is exactly what we'd get from a draw from the Dirichlet distribution. Moreover, because the Dirichlet distribution is **conjugate** in this case (specifically, conjugate to the underlying Categorical distribution representing each point's component), the posterior distribution resulting from Bayes' rule will also be a Dirichlet distribution, albeit with different parameters.
 
 ### Dirichlet process priors
-(Note that my understanding of this topic is still a bit raw. Any mistakes here are of course unintentional, and any suggested fixes are very welcome.)
+When using a Dirichlet prior, it's possible to specify a K so large that not all of the components will have points in them. If you don't know the number of components ahead of time, specifying a large number of *potential components* can be beneficial because your model will be able to "determine for itself" how many clusters are appropriate. (Note that this only works when doing Bayesian inference; doing this with likelihood based approaches would result in the fitting procedure "choosing" to use as many components as possible).
 
-Choosing the value of K is difficult, and one way to get around having to make that choice is by using a **Dirichlet process prior distribution** on the components.
-
-Essentially, we can imagine the standard finite mixture model described above as assigning one weight/probability value to each of the K normal distributions that comprise the model. That is, we have a *discrete probability distribution over the normal components of the model*.
-
-In a Bayesian setup, we would typically put a prior distribution on this vector of probability parameters and use Bayes' rule to get a posterior distribution. In particular, a Dirichlet distribution is the conjugate prior and makes this Bayesian update relatively easy. Given a value for K, a Dirichlet distribution can be viewed as a *random probability distribution over K values*, in that a draw from the Dirichlet gives a vector of K non-negative values that sum to 1.
-
-Now with a standard Dirichlet prior, we haven't gotten out of having to choose a K. This is where we extend the Dirichlet distribution to a Dirichlet process. A draw from a Dirichlet process can be viewed as a *random discrete probability distribution*. With a Dirichlet process prior, we implicitly place a prior over the number of components K in the model. When we update the prior to a posterior distribution (which uses similar math to the standard Dirichlet distribution update), our beliefs about the number of components that the data come from are updated as well.
+Dirichlet process priors extend this logic to the extreme by setting K as infinity. The actual definition of a Dirichlet process is fairly involved (it requires graduate-level probability theory), but the essential points are that...
+- We are using an infinite number of "potential components".
+- All but a finite number of them will have no corresponding data points.
+- We have computational tricks that allow us to only worry about a finite number of components.
+- Even for a Dirichlet distribution with K = infinity, we still benefit from conjugacy with the (in this case, also infinite) Categorical distribution.
 
 ## Acknowledgements
 - The Bokeh visualization was created with help from [Matthew Rocklin's blog](http://matthewrocklin.com/blog/work/2017/06/28/simple-bokeh-server). I essentially modified one of his examples to fit my project.
@@ -92,4 +99,5 @@ Now with a standard Dirichlet prior, we haven't gotten out of having to choose a
 - [This blogpost from Krzysztof Żuraw](https://krzysztofzuraw.com/blog/2016/makefiles-in-python-projects.html) influenced me to start using Make in many of my projects to organize common tasks.
 - When using Make, I ran into a problem for which phony targets were the answer. [This Stack Overflow question](https://stackoverflow.com/questions/2145590/what-is-the-purpose-of-phony-in-a-makefile) helped me understand them.
 - Thanks to Spotify for creating an easy-to-use [Docker image for Kafka](https://hub.docker.com/r/spotify/kafka/). This saved me a lot of work!
-- Among other resources, Gershman and Blei's [tutorial on Bayesian nonparametrics](https://arxiv.org/abs/1106.2697) was very helpful while trying to wrap my head around the fundamental concepts.
+- Gershman and Blei's [tutorial on Bayesian nonparametrics](https://arxiv.org/abs/1106.2697) was very helpful while trying to wrap my head around the fundamental concepts.
+- Tamara Broderick's [ML Summer School 2015](https://www.youtube.com/watch?v=FUL1DcjOjwo) videos on Dirichlet processes are also highly recommended. My description of the large-K-but-still-finite Dirichlet distribution is basically stolen from these videos. This is the link to the first of 3 videos. (More generally, almost every MLSS video is probably useful for learning advanced ML and statistics concepts).
