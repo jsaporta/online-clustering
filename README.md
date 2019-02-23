@@ -40,10 +40,15 @@ With the requirements in place, you can...
 2. Navigate to the project's root directory.
 3. Use `make all` to start everything up.
 4. Navigate to `localhost:5006` in your browser. Have fun!
-5. You can kill all running containers with `docker kill $(docker ps -q)$`.
-6. The images will also take up space on your computer until you delete them.
 
-If you're running other containers and don't want to kill everything, I assume that you already know a thing or two about Docker, and are capable of deleting only those containers corresponding to this project yourself!
+Note that you may need to wait a few seconds between starting up the containers in step 3 and actually being able to access the webapp in step 4. Once you get to the plot, everything will be working, but you'll also need to be patient before the first points appear in the scatterplot.
+
+### Cleanup
+5. *You can kill all running containers with `docker kill $(docker ps -q)`.
+6. *Delete all stopped containers with `docker rm $(docker ps -aq)`.
+7. *Delete all images with `docker rmi $(docker image ls -q)`.
+
+*If you're using Docker for other things as well, you probably ought not to run these commands. In this case, I assume that you already know a thing or two about Docker, and are capable of killing/deleting only those containers/images corresponding to this project yourself!
 
 ## Software engineering background
 This project makes use of several pieces of technology which may not be familiar to many data scientists.
